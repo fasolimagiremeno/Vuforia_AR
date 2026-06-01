@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Diploma Thesis — Interactive Simulation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400&family=Instrument+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #0b1220;
+      --surface:    #111c2e;
+      --surface2:   #16243c;
+      --border:     rgba(100, 160, 220, 0.12);
+      --border2:    rgba(100, 160, 220, 0.22);
+      --blue-dim:   #2a5080;
+      --blue-mid:   #4a88c0;
+      --blue-light: #8bbde0;
+      --blue-pale:  #b8d8f0;
+      --text-main:  #cde3f5;
+      --text-muted: #6a9abf;
+      --text-faint: #3a6080;
+      --accent:     #5fa8d8;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text-main);
+      font-family: 'Instrument Sans', sans-serif;
+      font-weight: 300;
+      line-height: 1.7;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── grid overlay ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(74,136,192,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(74,136,192,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── layout ── */
+    .wrap { max-width: 900px; margin: 0 auto; padding: 0 2rem; position: relative; z-index: 1; }
+
+    /* ── nav ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 100;
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      background: rgba(11, 18, 32, 0.82);
+    }
+    nav .wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 1rem;
+      padding-bottom: 1rem;
+    }
+    .nav-logo {
+      font-family: 'DM Mono', monospace;
+      font-weight: 300;
+      font-size: 0.75rem;
+      letter-spacing: 0.18em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .nav-links { display: flex; gap: 2rem; list-style: none; }
+    .nav-links a {
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      text-decoration: none;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--blue-pale); }
+
+    /* ── hero ── */
+    .hero {
+      padding: 10rem 0 5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.22em;
+      color: var(--text-faint);
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+    .hero-label span {
+      display: inline-block;
+      width: 24px;
+      height: 1px;
+      background: var(--text-faint);
+      vertical-align: middle;
+      margin-right: 0.75rem;
+    }
+    h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(2.4rem, 6vw, 4rem);
+      font-weight: 400;
+      line-height: 1.1;
+      color: var(--blue-pale);
+      margin-bottom: 1.5rem;
+    }
+    h1 em {
+      font-style: italic;
+      color: var(--blue-light);
+    }
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-muted);
+      max-width: 540px;
+      line-height: 1.8;
+      margin-bottom: 3rem;
+    }
+    .hero-meta {
+      display: flex;
+      gap: 2.5rem;
+      flex-wrap: wrap;
+    }
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .meta-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+    .meta-value {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* ── section titles ── */
+    .section { padding: 5rem 0; border-bottom: 1px solid var(--border); }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 3rem;
+    }
+    .section-num {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--text-faint);
+      letter-spacing: 0.2em;
+    }
+    h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.65rem;
+      font-weight: 400;
+      color: var(--blue-pale);
+    }
+    .section-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── unity embed ── */
+    .unity-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .unity-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+    }
+    .unity-icon {
+      width: 52px;
+      height: 52px;
+      opacity: 0.3;
+    }
+    .unity-hint {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      color: var(--text-faint);
+      text-transform: uppercase;
+    }
+    .unity-code {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--text-faint);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 0.9rem 1.25rem;
+      line-height: 1.9;
+      white-space: pre;
+      overflow-x: auto;
+    }
+    /* real unity embed — uncomment and fill paths */
+    /*
+    #unity-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    */
+
+
+
+
+    /* ── footer ── */
+    footer {
+      padding: 3rem 0;
+    }
+    footer .wrap {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .footer-name {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--text-faint);
+      letter-spacing: 0.15em;
+    }
+    .footer-year {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--text-faint);
+      letter-spacing: 0.15em;
+    }
+
+    /* ── fade-in on scroll ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 0.65s ease, transform 0.65s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="wrap">
+      <span class="nav-logo">Thesis — 2026</span>
+      <ul class="nav-links">
+        <li><a href="#simulation">Simulation</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap">
+      <p class="hero-label"><span></span>Diploma Thesis</p>
+      <h1>Interactive <em>Real-Time</em><br>Simulation Study</h1>
+      <p class="hero-sub">
+        A WebGL-based interactive environment developed as part of a diploma thesis
+        exploring real-time rendering and simulation techniques.
+      </p>
+      <div class="hero-meta">
+        <div class="meta-item">
+          <span class="meta-label">Author</span>
+          <span class="meta-value">Antonios Taxiarchis Theodorou</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Supervisor</span>
+          <span class="meta-value">Anna Karagianni</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Institution</span>
+          <span class="meta-value">Technical University of Cere</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Year</span>
+          <span class="meta-value">2026</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SIMULATION -->
+  <section class="section" id="simulation">
+    <div class="wrap">
+      <div class="section-header reveal">
+        <span class="section-num">01</span>
+        <h2>Live Simulation</h2>
+        <div class="section-line"></div>
+      </div>
+
+      <!-- Unity WebGL Embed -->
+      <div class="unity-wrapper reveal">
+        <!--
+          ═══════════════════════════════════════════════════════════════
+          UNITY WEBGL INTEGRATION
+          ───────────────────────────────────────────────────────────────
+          1. Build your Unity project for WebGL (File → Build Settings)
+          2. Copy the Build/ folder next to this index.html
+          3. Replace the placeholder below with the real loader script
+             and canvas tag. Example:
+
+          <script src="Build/thesis-build.loader.js"></script>
+          <canvas id="unity-canvas" tabindex="-1"></canvas>
+          <script>
+            createUnityInstance(
+              document.querySelector('#unity-canvas'),
+              {
+                dataUrl:      "Build/thesis-build.data",
+                frameworkUrl: "Build/thesis-build.framework.js",
+                codeUrl:      "Build/thesis-build.wasm",
+                streamingAssetsUrl: "StreamingAssets",
+                companyName:  "Thesis",
+                productName:  "Simulation",
+                productVersion: "1.0",
+              }
+            ).then(instance => { unityInstance = instance; });
+          </script>
+          ═══════════════════════════════════════════════════════════════
+        -->
+
+        <!-- Placeholder shown until Unity build is added -->
+        <div class="unity-placeholder">
+          <svg class="unity-icon" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M44 4L80 24V64L44 84L8 64V24L44 4Z" stroke="#8bbde0" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M44 4V44M44 44L8 24M44 44L80 24" stroke="#8bbde0" stroke-width="1.5"/>
+            <path d="M44 44V84M44 44L8 64M44 44L80 64" stroke="#4a88c0" stroke-width="1" stroke-dasharray="4 3"/>
+          </svg>
+          <span class="unity-hint">Unity WebGL Build</span>
+        </div>
+      </div>
+
+      <!-- Integration snippet -->
+      <div class="reveal" style="margin-top: 1.5rem;">
+        <div class="unity-code"><!-- Place your Unity build files in /Build/ and replace this placeholder.
+     Required files: loader.js · .data · .framework.js · .wasm --></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="wrap">
+      <span class="footer-name">Antonios Taxiarchis Theodorou · Diploma Thesis</span>
+      <span class="footer-year">2026</span>
+    </div>
+  </footer>
+
+  <script>
+    const reveals = document.querySelectorAll('.reveal');
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.12 });
+    reveals.forEach(el => io.observe(el));
+  </script>
+</body>
+</html>
